@@ -80,11 +80,11 @@ with st.container():
 
         # Show a short textual guide of bands
         st.write("**Bands:**")
-        st.markdown(
-            "- 25–30: Strong Buy / Anchor allocation  
-- 18–24: Opportunistic / Limited allocation  
-- <18: Pass"
-        )
+        st.markdown("""
+        - 25–30: Strong Buy / Anchor allocation  
+        - 18–24: Opportunistic / Limited allocation  
+        - <18: Pass
+        """)
 
 # 2) Red Flags
 st.markdown("---")
@@ -172,10 +172,8 @@ if run_mc:
     n = int(n_paths)
 
     # simulate yearly returns using normal approximation
-    # shape: (n_paths, years)
     rng = np.random.default_rng()
     rets = rng.normal(loc=mu, scale=sigma, size=(n, T))
-    # build growth paths: cumulative product of (1 + ret)
     paths = start_value * np.cumprod(1 + rets, axis=1)
 
     years_idx = np.arange(1, T + 1)
@@ -188,7 +186,6 @@ if run_mc:
     drawdowns = (running_max - median_path) / running_max
     max_drawdown = np.max(drawdowns)
 
-    # also compute worst max drawdown across all paths (approx)
     running_max_all = np.maximum.accumulate(paths, axis=1)
     drawdowns_all = (running_max_all - paths) / running_max_all
     worst_path_mdd = np.max(drawdowns_all)
@@ -227,4 +224,5 @@ with st.expander("Notes & assumptions"):
     )
 
 st.caption("Built with Streamlit — all calculations run locally in the browser/session. No external APIs.")
+
 

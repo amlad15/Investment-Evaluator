@@ -14,31 +14,49 @@ API_SEARCH = "https://api.mfapi.in/mf/search"
 API_SCHEME = "https://api.mfapi.in/mf/{}"
 
 # --- Helper functions ---
-def universal_scrape(url: str) -> Dict:
-    """Scrape any Indian mutual fund page to detect fund name, optionally AUM, expense ratio, manager."""
+def universal_scrape(url: str) -> dict:
+    """
+    Scrape any Indian mutual fund page to detect fund name, and optionally AUM, expense ratio, manager.
+    Works for most AMCs by using a browser-like User-Agent.
+    """
     info = {"name": None, "AUM": "N/A", "Expense Ratio": "N/A", "Fund Manager": "N/A"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/114.0.0.0 Safari/537.36"
+    }
     try:
-        resp = requests.get(url, timeout=15)
+        resp = requests.get(url, headers=headers, timeout=15)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
+        
         # Attempt universal detection of fund name
         if soup.title and soup.title.string:
             info["name"] = soup.title.string.strip()
-        h1 = soup.find("h1")
-        if h1 and not info["name"]:
-            info["name"] = h1.text.strip()
+        else:
+            h1 = soup.find("h1")
+            if h1:
+                info["name"] = h1.text.strip()
+        
         # Domain-specific scraping for known AMCs
-        domain = urlparse(url).netloc
+        domain = urlparse(url).netloc.lower()
         if "bandhanmutual" in domain:
-            try: info["AUM"] = soup.find("td", text="Assets Under Management").find_next_sibling("td").text.strip()
+            try:
+                info["AUM"] = soup.find("td", text="Assets Under Management").find_next_sibling("td").text.strip()
             except: pass
-            try: info["Expense Ratio"] = soup.find("td", text="Expense Ratio").find_next_sibling("td").text.strip()
+            try:
+                info["Expense Ratio"] = soup.find("td", text="Expense Ratio").find_next_sibling("td").text.strip()
             except: pass
-            try: info["Fund Manager"] = soup.find("td", text="Fund Manager").find_next_sibling("td").text.strip()
+            try:
+                info["Fund Manager"] = soup.find("td", text="Fund Manager").find_next_sibling("td").text.strip()
             except: pass
-        # Additional known AMCs can be added here
+        # You can add more AMCs here with elif blocks
+
+    except requests.exceptions.HTTPError as e:
+        st.warning(f"HTTP Error: {e}")
     except Exception as e:
         st.warning(f"Scraping failed: {e}")
+
     return info
 
 def mf_search(query: str) -> List[Dict]:
